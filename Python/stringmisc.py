@@ -1,7 +1,7 @@
 ## Author:  Owen Cocjin
 ## Version: 0.1
 ## Date:    2020.12.24
-## Description:  Manage the web server's socket connections
+## Description:  Functions for string manipulation
 ## Notes:
 def ctxt(text, colour=None):
 	'''Add/validate colour to a text. Returns original text on fail'''
