@@ -11,5 +11,5 @@ def ctxt(text, colour=39, bg=49):
 		if (30<=colour<=39 or 90<=colour<=97)\
 		and (40<=bg<=49 or 100<=bg<=107):
 			return f"\033[{colour}m\033[{bg}m{text}\033[0m"
-	else:
+	except:
 		return text
