@@ -3,7 +3,7 @@
 ## Date:    2020.12.24
 ## Description:  Functions for string manipulation
 ## Notes:
-def ctxt(text, clr=39, *, bg=49):
+def ctxt(text, clr=39, bg=49):
 	'''Add/validate colour to a text. Returns original text on fail'''
 	try:
 		clr=int(clr)
