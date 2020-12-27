@@ -14,3 +14,14 @@ def handlePipe(pipe, toSend=None):
 	else:
 		with open(pipe, 'w') as p:
 			p.write(str(toSend))
+
+def checkPipe(pipe):
+	'''Creates a FIFO pipe if one doesn't exist.
+	Return statuses:
+	0: Pipe exists
+	1: Pipe just created
+	2: Error making pipe'''
+	with open(pipe, 'r') as p:
+		pass
+	return 0
+	
