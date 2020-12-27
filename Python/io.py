@@ -3,6 +3,8 @@
 ## Date:    2020.12.26
 ## Description:  Input/output management, including pipes!
 ## Notes:
+import os
+
 def handlePipe(pipe, toSend=None):
 	'''Reads/Writes to pipe.
 	If toSend is None, opens pipe in reading mode, else writing mode
@@ -21,7 +23,10 @@ def checkPipe(pipe):
 	0: Pipe exists
 	1: Pipe just created
 	2: Error making pipe'''
-	with open(pipe, 'r') as p:
-		pass
-	return 0
-	
+	try:
+		os.mkfifo(pipe)
+		return 1
+	except FileExistsError:
+		return 0
+	except:
+		return 2
