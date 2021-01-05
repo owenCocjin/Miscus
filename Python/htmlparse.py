@@ -11,4 +11,4 @@ def decodePercent(data):
 	percent_dict={"%26":'&'}
 	for k in percent_dict:
 		data=data.replace(k, percent_dict[k])
-	return k
+	return data
