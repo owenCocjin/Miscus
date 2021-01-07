@@ -1,12 +1,11 @@
 ## Author:  Owen Cocjin
-## Version: 0.1.1
+## Version: 0.2
 ## Date:    2021.01.06
 ## Description:  Input/output management, including pipes!
 ## Notes:
 ##    - In FIFO.writePipe(), there is a commented sleep line. This can be uncommented if the program uses too many resources
 ## Update:
-##    - Fixed issues with writing to pipe overwriting prev buffer
-##    - Fixed issue with reading in testing
+##    - Added daemon argument to FIFO
 import os, threading, time
 
 def handlePipe(pipe, toSend=None):
@@ -40,8 +39,9 @@ class FIFO():
 	'''Managed FIFO pipes.
 	At most 2 pipes (one as input, one as output).
 	Only pass pipe names, NOT file descriptors'''
-	def __init__(self, name, *, pipe_in=None, pipe_out=None):
+	def __init__(self, name, *, pipe_in=None, pipe_out=None, daemon=False):
 		self.name=name
+		self.daemon=daemon
 		self.pipes=[pipe_in, pipe_out]
 		self.threads=[None, None]  #Matches self.pipes
 		self.buffers=['', '']  #[read, write]
@@ -61,14 +61,14 @@ buffers: {self.buffers}'''
 			print("[|X:io:FIFO:startThreads]: Starting reading thread!")
 			self.threads[0]=threading.Thread(name=f"{self.name}-reader",\
 			target=self.readPipe,\
-			daemon=True)
+			daemon=self.daemon)
 			self.threads[0].start()
 		#Writing thread
 		if self.pipes[1]!=None:
 			print("[|X:io:FIFO:startThreads]: Starting writing thread!")
 			self.threads[1]=threading.Thread(name=f"{self.name}-writer",\
 			target=self.writePipe,\
-			daemon=True)
+			daemon=self.daemon)
 			self.threads[1].start()
 
 	def readPipe(self):
