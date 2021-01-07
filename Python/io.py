@@ -1,11 +1,11 @@
 ## Author:  Owen Cocjin
-## Version: 0.2
+## Version: 0.3
 ## Date:    2021.01.06
 ## Description:  Input/output management, including pipes!
 ## Notes:
 ##    - In FIFO.writePipe(), there is a commented sleep line. This can be uncommented if the program uses too many resources
 ## Update:
-##    - Added daemon argument to FIFO
+##    - Added time buffers in FIFO.writePipe()
 import os, threading, time
 
 def handlePipe(pipe, toSend=None):
