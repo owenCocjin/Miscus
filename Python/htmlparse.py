@@ -1,12 +1,11 @@
 ##
 ## Author:  Owen Cocjin
-## Version: 0.2
+## Version: 0.3
 ## Date:    2021.01.04
 ## Description:  Functions for HTML parsing
 ## Notes:
 ## Updates:
-##    - Added encodeSpecial
-##    - Added an if check which should make encode/decoders more efficient(?)
+##    - Added &nbsp to encodeSpecial
 
 def decodePercent(data):
 	'''Decode percent encoding.
@@ -21,7 +20,8 @@ def encodeSpecial(data):
 	'''Encodes special chars within data'''
 	special_dict={'<':"&lt",
 	'>':"&gt",
-	'\n':"</br>"}
+	'\n':"</br>",
+	'\t':"&nbsp&nbsp&nbsp&nbsp"}
 	for k in special_dict:
 		if data.find(k)!=-1:
 			data=data.replace(k, special_dict[k])
