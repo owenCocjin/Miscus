@@ -75,6 +75,7 @@ buffers: {self.buffers}'''
 		'''Reads from a pipe'''
 		self.buffers[0]=''
 		while True:
+			time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
 			with open(self.pipes[0], 'r') as f:
 				self.buffers[0]+=f.read()
 				#print("[|X:io:FIFO:readPipe]: Read from pipe!")
@@ -82,7 +83,7 @@ buffers: {self.buffers}'''
 	def writePipe(self):
 		'''Writes to pipe'''
 		while True:
-			#time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
+			time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
 			with open(self.pipes[1], 'w') as f:
 				if self.buffers[1]!='':  #Only write when buffer isn't empty
 					f.write(self.buffers[1])
