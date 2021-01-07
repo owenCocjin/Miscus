@@ -1,11 +1,11 @@
 ##
 ## Author:  Owen Cocjin
-## Version: 0.3
+## Version: 0.4
 ## Date:    2021.01.04
 ## Description:  Functions for HTML parsing
 ## Notes:
 ## Updates:
-##    - Added &nbsp to encodeSpecial
+##    - Increased space options for &nbsp in encodeSpecial
 
 def decodePercent(data):
 	'''Decode percent encoding.
@@ -21,7 +21,9 @@ def encodeSpecial(data):
 	special_dict={'<':"&lt",
 	'>':"&gt",
 	'\n':"</br>",
-	'\t':"&nbsp&nbsp&nbsp&nbsp"}
+	'\t':"&nbsp&nbsp&nbsp&nbsp",
+	"    ":"&nbsp&nbsp&nbsp&nbsp",
+	"        ":"&nbsp&nbsp&nbsp&nbsp"}
 	for k in special_dict:
 		if data.find(k)!=-1:
 			data=data.replace(k, special_dict[k])
