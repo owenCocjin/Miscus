@@ -1,11 +1,13 @@
 ## Author:  Owen Cocjin
-## Version: 0.1
-## Date:    2020.12.26
+## Version: 0.1.1
+## Date:    2021.01.06
 ## Description:  Input/output management, including pipes!
 ## Notes:
+##    - In FIFO.writePipe(), there is a commented sleep line. This can be uncommented if the program uses too many resources
 ## Update:
-##    - Added FIFO class to manage pipes
-import os, threading
+##    - Fixed issues with writing to pipe overwriting prev buffer
+##    - Fixed issue with reading in testing
+import os, threading, time
 
 def handlePipe(pipe, toSend=None):
 	'''Reads/Writes to pipe.
@@ -75,11 +77,15 @@ buffers: {self.buffers}'''
 		while True:
 			with open(self.pipes[0], 'r') as f:
 				self.buffers[0]+=f.read()
+				#print("[|X:io:FIFO:readPipe]: Read from pipe!")
+				#print(self.buffers[0])
 	def writePipe(self):
 		'''Writes to pipe'''
 		while True:
+			#time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
 			with open(self.pipes[1], 'w') as f:
-				f.write(self.buffers)
+				if self.buffers[1]!='':  #Only write when buffer isn't empty
+					f.write(self.buffers[1])
 			self.buffers[1]=''
 
 	def read(self):
@@ -92,6 +98,9 @@ buffers: {self.buffers}'''
 			self.buffers[0]=''
 			return toRet
 
+	def write(self, writebuff):
+		'''Writes to pipes[1] by setting buffers[1]'''
+		self.buffers[1]+=writebuff
 
 	def getName(self):
 		return self.name
@@ -112,6 +121,5 @@ if __name__=="__main__":
 	x=FIFO("test", pipe_in="in.bridge", pipe_out="out.bridge")
 	print(x)
 	while True:
-		menu=x.read()
-		if menu!=None:
-			print(menu)
+		x.write(input(": "))
+		print(x.read())
