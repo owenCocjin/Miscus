@@ -5,7 +5,7 @@
 ## Description:  Functions for HTML parsing
 ## Notes:
 ## Updates:
-##    - Added encodeSpecials
+##    - Added encodeSpecial
 ##    - Added an if check which should make encode/decoders more efficient(?)
 
 def decodePercent(data):
@@ -17,7 +17,7 @@ def decodePercent(data):
 			data=data.replace(k, percent_dict[k])
 	return data
 
-def encodeSpecials(data):
+def encodeSpecial(data):
 	'''Encodes special chars within data'''
 	special_dict={'<':"&lt",
 	'>':"&gt",
