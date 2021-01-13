@@ -1,5 +1,5 @@
 ## Author:  Owen Cocjin
-## Version: 1.0
+## Version: 1.1
 ## Date:    2021.01.13
 ## Description:  Input/output management, including pipes!
 ## Notes:
@@ -7,9 +7,7 @@
 ##    - When switching between modes, the current mode must be fulfilled before the switch happens.
 ##        * eg. If you are reading and switch to write mode, FIFO will continue to read until data is written to the pipe
 ## Update:
-##    - Re-vamped FIFO... Again!
-##    - The user can now tell FIFO if it is reading or writing to the pipe
-##    - The user can switch between reading/writing with the switchTo() function
+##    - Fixed FIFO reading not storing read lines
 import os, threading, time
 
 def handlePipe(pipe, toSend=None):
@@ -89,7 +87,7 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 		'''Reads from a pipe'''
 		self.proc=1
 		with open(self.pipe, 'r') as f:
-			self.read_buffer=f.read()
+			self.read_buffer+=f.read()
 			#print(f"[|X:io:FIFO:readPipe]: {self.read_buffer}")
 		self.proc=0
 		return self.read_buffer
@@ -106,7 +104,9 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 
 	def readBlocking(self):
 		'''Reads through pipe'''
-		return readPipe()
+		toRet=readPipe()
+		self.write_buffer=''
+		return toRet
 	def writeBlocking(self, toWrite=None):
 		'''Writes through pipe'''
 		return writePipe(toWrite)
