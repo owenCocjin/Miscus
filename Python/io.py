@@ -1,11 +1,15 @@
 ## Author:  Owen Cocjin
-## Version: 0.3
-## Date:    2021.01.06
+## Version: 1.0
+## Date:    2021.01.13
 ## Description:  Input/output management, including pipes!
 ## Notes:
-##    - In FIFO.writePipe(), there is a commented sleep line. This can be uncommented if the program uses too many resources
+##    - FIFO doesn't manage itself very well. The user will have to manage reading/writing a lot.
+##    - When switching between modes, the current mode must be fulfilled before the switch happens.
+##        * eg. If you are reading and switch to write mode, FIFO will continue to read until data is written to the pipe
 ## Update:
-##    - Added time buffers in FIFO.writePipe()
+##    - Re-vamped FIFO... Again!
+##    - The user can now tell FIFO if it is reading or writing to the pipe
+##    - The user can switch between reading/writing with the switchTo() function
 import os, threading, time
 
 def handlePipe(pipe, toSend=None):
@@ -37,86 +41,122 @@ def checkPipe(pipe):
 
 class FIFO():
 	'''Managed FIFO pipes.
-	At most 2 pipes (one as input, one as output).
-	Only pass pipe names, NOT file descriptors'''
-	def __init__(self, name, *, pipe_in=None, pipe_out=None, daemon=False):
+	Only pass pipe name, NOT file descriptors.
+	"daemon" arg is for threading.
+	"block" arg determines if pipes block or not.
+	Because a pipe should only be read OR written by the class at a time, only one thread is required'''
+	def __init__(self, name, *, pipe=None, daemon=False, block=False, mode=1):
 		self.name=name
+		self.pipe=pipe
 		self.daemon=daemon
-		self.pipes=[pipe_in, pipe_out]
-		self.threads=[None, None]  #Matches self.pipes
-		self.buffers=['', '']  #[read, write]
-		#Starts threads
-		self.startThreads()
+		self.block=block
+		self.read_buffer=''
+		self.write_buffer=''
+		self.proc=0  #0=Clear; 1=Reading; 2=Writing
+		self.mode=mode  #1=Read; 2=Write; 0=Kill thread
+		self.thread=None
+		#Starts thread & set's read/write function
+		if not self.block:  #Using thread
+			self.thread=threading.Thread(name=f"{self.name}",\
+			target=self.threadRunner,\
+			daemon=self.daemon)
+
+			self.thread.start()
+
+			self.read=self.readNoBlocking
+			self.write=self.writeNoBlocking
+		else:
+			self.read=self.readBlocking
+			self.write=self.writeBlocking
 
 	def __str__(self):
 		return f'''FIFO {self.name}:
-pipes:   {self.pipes}
-threads: {self.threads}
-buffers: {self.buffers}'''
+pipe:   {self.pipe}
+thread: {self.thread}
+buffers: [{self.read_buffers}, {self.write_buffer}]'''
 
-	def startThreads(self):
-		'''Starts threads'''
-		#Reading thread
-		if self.pipes[0]!=None:
-			print("[|X:io:FIFO:startThreads]: Starting reading thread!")
-			self.threads[0]=threading.Thread(name=f"{self.name}-reader",\
-			target=self.readPipe,\
-			daemon=self.daemon)
-			self.threads[0].start()
-		#Writing thread
-		if self.pipes[1]!=None:
-			print("[|X:io:FIFO:startThreads]: Starting writing thread!")
-			self.threads[1]=threading.Thread(name=f"{self.name}-writer",\
-			target=self.writePipe,\
-			daemon=self.daemon)
-			self.threads[1].start()
-
+	def threadRunner(self):
+		'''Manages if the process is either reading or writing at the moment'''
+		#Check mode to see if should be read/writing
+		while self.mode!=0:
+			if self.mode==1:
+				self.readPipe()
+			elif self.mode==2:
+				self.writePipe()
+			else:  #Sleep as to not hog resources
+				time.sleep(0.5)
 	def readPipe(self):
 		'''Reads from a pipe'''
-		self.buffers[0]=''
-		while True:
-			time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
-			with open(self.pipes[0], 'r') as f:
-				self.buffers[0]+=f.read()
-				#print("[|X:io:FIFO:readPipe]: Read from pipe!")
-				#print(self.buffers[0])
+		self.proc=1
+		with open(self.pipe, 'r') as f:
+			self.read_buffer=f.read()
+			#print(f"[|X:io:FIFO:readPipe]: {self.read_buffer}")
+		self.proc=0
+		return self.read_buffer
 	def writePipe(self):
 		'''Writes to pipe'''
-		while True:
-			time.sleep(0.5)  #Sleep buffer so writing doesn't take too many resources
-			with open(self.pipes[1], 'w') as f:
-				if self.buffers[1]!='':  #Only write when buffer isn't empty
-					f.write(self.buffers[1])
-			self.buffers[1]=''
+		self.proc=2
+		with open(self.pipe, 'w') as f:
+			while self.write_buffer=='':
+				time.sleep(0.1)  #Time buffer
+			f.write(self.write_buffer)
+		toRet, self.write_buffer=self.write_buffer, ''
+		self.proc=0
+		return self.write_buffer
 
-	def read(self):
-		'''Returns buffer[0], then clears it.
-		Returns None if buffer is an empty string'''
-		if self.buffers[0]=='':
-			return None
-		else:
-			toRet=self.buffers[0]
-			self.buffers[0]=''
+	def readBlocking(self):
+		'''Reads through pipe'''
+		return readPipe()
+	def writeBlocking(self, toWrite=None):
+		'''Writes through pipe'''
+		return writePipe(toWrite)
+	def readNoBlocking(self):
+		'''Returns self.read_buffer if not ""'''
+		if self.read_buffer!='':
+			toRet, self.read_buffer=self.read_buffer, ''
 			return toRet
+		else:
+			return None
+	def writeNoBlocking(self, toWrite=None):
+		'''Starts writing thread, if not started.
+		Returns True is write was put through.
+		Returns False if thread was already writing
+		Returns None if currently reading'''
+		if toWrite!=None:
+			self.write_buffer=toWrite
+		return True
 
-	def write(self, writebuff):
-		'''Writes to pipes[1] by setting buffers[1]'''
-		self.buffers[1]+=writebuff
+	def switchTo(self, proc):
+		'''Switch to reading/writing:
+		1=Reading
+		2=Writing'''
+		self.mode=proc
+
+	def kill(self):
+		'''Sets mode to 0, marking thread to die'''
+		self.mode=0
 
 	def getName(self):
 		return self.name
-	def getPipes(self):
-		return self.pipes
+	def getPipe(self):
+		return self.pipe
+	def getMode(self):
+		return self.mode
 	def getBuffers(self):
-		return self.buffers
+		return self.read_buffer, self.write_buffer
 	def setName(self, new):
 		self.name=new
-	def setPipes(self, new, pipe=0):
-		'''0=Input, 1=Output'''
-		self.pipes[pipe]=new
-	def setBuffers(self, new, buffer=0):
-		'''0=Read, 1=Write'''
-		self.buffers[buffer]=new
+	def setPipe(self, new):
+		self.pipe=new
+	def setMode(self, new):
+		self.mode=new
+	def isAlive(self):
+		'''Returns alive thread:
+		1=Reading
+		2=Writing'''
+		return self.proc
+
+
 
 if __name__=="__main__":
 	x=FIFO("test", pipe_in="in.bridge", pipe_out="out.bridge")
