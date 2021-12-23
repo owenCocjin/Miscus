@@ -16,3 +16,5 @@ This repo has a bunch of assorted stuff, clone the repo and just copy whatever y
 		- encodeSpecial: Encode special characters to percent encoding
 	- stringmisc.py
 		- ctxt: Add colour to text
+	- conn.py
+		- recvExact: Receive exactly N bytes from a socket
