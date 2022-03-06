@@ -48,13 +48,19 @@ class FIFO():
 		self.pipe=pipe
 		self.daemon=daemon
 		self.block=block
-		self.read_buffer=''
-		self.write_buffer=''
-		self.proc=0  #0=Clear; 1=Reading; 2=Writing
-		self.mode=mode  #1=Read; 2=Write; 0=Kill thread
+		self.buffers=['', '']
+		self.proc=0  #0=Clear; 1=Reading; 2=Writing;
+		self.mode=mode  #0=Kill thread; 1=Read; 2=Write; 3=turretThread
 		self.thread=None
 		#Starts thread & set's read/write function
-		if not self.block:  #Using thread
+		if self.mode==3:  #Turret Mode!
+			self.thread=threading.Thread(name=f"{self.name}",\
+			target=self.turretThread,\
+			daemon=self.daemon)
+			self.thread.start()
+			self.read=self.bufferRead
+
+		elif not self.block:  #Using thread
 			self.thread=threading.Thread(name=f"{self.name}",\
 			target=self.threadRunner,\
 			daemon=self.daemon)
@@ -71,7 +77,7 @@ class FIFO():
 		return f'''FIFO {self.name}:
 pipe:   {self.pipe}
 thread: {self.thread}
-buffers: [{self.read_buffers}, {self.write_buffer}]'''
+buffers: {self.buffers}'''
 
 	def threadRunner(self):
 		'''Manages if the process is either reading or writing at the moment'''
@@ -87,33 +93,32 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 		'''Reads from a pipe'''
 		self.proc=1
 		with open(self.pipe, 'r') as f:
-			self.read_buffer+=f.read()
-			#print(f"[|X:io:FIFO:readPipe]: {self.read_buffer}")
+			self.buffers[0]+=f.read()
 		self.proc=0
-		return self.read_buffer
+		return self.buffers[0]
 	def writePipe(self):
 		'''Writes to pipe'''
 		self.proc=2
 		with open(self.pipe, 'w') as f:
-			while self.write_buffer=='':
+			while self.buffers[1]=='':
 				time.sleep(0.1)  #Time buffer
-			f.write(self.write_buffer)
-		toRet, self.write_buffer=self.write_buffer, ''
+			f.write(self.buffers[1])
+		toRet, self.buffers[1]=self.buffers[1], ''
 		self.proc=0
-		return self.write_buffer
+		return self.buffers[1]
 
 	def readBlocking(self):
 		'''Reads through pipe'''
 		toRet=readPipe()
-		self.write_buffer=''
+		self.buffers[1]=''
 		return toRet
 	def writeBlocking(self, toWrite=None):
 		'''Writes through pipe'''
 		return writePipe(toWrite)
 	def readNoBlocking(self):
-		'''Returns self.read_buffer if not ""'''
-		if self.read_buffer!='':
-			toRet, self.read_buffer=self.read_buffer, ''
+		'''Returns self.buffers[0] if not ""'''
+		if self.buffers[0]!='':
+			toRet, self.buffers[0]=self.buffers[0], ''
 			return toRet
 		else:
 			return None
@@ -123,8 +128,21 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 		Returns False if thread was already writing
 		Returns None if currently reading'''
 		if toWrite!=None:
-			self.write_buffer=toWrite
+			self.buffers[1]=toWrite
 		return True
+	def turretThread(self):
+		'''Reads indefinitely, constantly writing to read_buffer'''
+		with open(self.pipe, 'r') as f:
+			while True:
+				self.buffers[0]+=f.readline()
+	def bufferRead(self):
+		'''Reads from buffer, then clears it.
+		Mainly used with turretThread'''
+		toRet, self.buffers[0]=self.buffers[0], ''
+		if toRet=='':
+			return None
+		else:
+			return toRet
 
 	def switchTo(self, proc):
 		'''Switch to reading/writing:
@@ -143,7 +161,7 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 	def getMode(self):
 		return self.mode
 	def getBuffers(self):
-		return self.read_buffer, self.write_buffer
+		return self.buffers
 	def setName(self, new):
 		self.name=new
 	def setPipe(self, new):
@@ -159,8 +177,7 @@ buffers: [{self.read_buffers}, {self.write_buffer}]'''
 
 
 if __name__=="__main__":
-	x=FIFO("test", pipe_in="in.bridge", pipe_out="out.bridge")
-	print(x)
+	x=FIFO("test", pipe="test.bridge", mode=3, daemon=True)
 	while True:
-		x.write(input(": "))
-		print(x.read())
+		input("Press enter to read...")
+		print(f"{x.read()} | {x.buffers[0]}", end='')

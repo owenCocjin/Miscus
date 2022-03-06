@@ -1,9 +1,10 @@
 ##
 ## Author:  Owen Cocjin
-## Version: 0.4.1
-## Date:    2021.12.10
+## Version: 0.4.2
+## Date:    2022.03.06
 ## Description:  Functions for manipulating bits
-## Notes:
+## Updates:
+##  - Fixed iToB returning \x00 when length is manually passed
 def bToI(b):
 	'''Returns an int'''
 	toret=0
@@ -19,7 +20,7 @@ def iToB(i,length=1):
 	toret=bytes.fromhex(h)
 	cur_length=len(toret)
 	if cur_length<length:
-		toret=b'\x00'*(length-cur_length)
+		toret=b'\x00'*(length-cur_length)+toret
 	return toret
 def setBit(target:int,new:int,pos:int,*,bits=1)->int:
 	'''Sets a specific bit(s) in target.
